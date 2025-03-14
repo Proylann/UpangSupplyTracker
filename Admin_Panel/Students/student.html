@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPANG Supply Tracker System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="stlye.css">
+  
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="Images/logo.png" alt="Dashboard Logo" class="logo-img">
+            Student Management
+        </div>
+        <nav>
+            <a href="./Dashboard/index.html" class="nav-item active">
+                <i class="fas fa-home"></i>
+                Dashboard
+            </a>
+            <a href="books.html" class="nav-item">
+                <i class="fas fa-book"></i>
+                Books
+            </a>
+            <a href="uniforms.html" class="nav-item">
+                <i class="fas fa-tshirt"></i>
+                Uniforms
+            </a>
+            <a href="modules.html" class="nav-item">
+                <i class="fas fa-file-alt"></i>
+                Modules
+            </a>
+            <a href="student.html" class="nav-item">
+                <i class="fas fa-user-graduate"></i>
+               Students
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-clock"></i>
+                Reservations
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-cog"></i>
+                Settings
+            </a>
+        
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <div>
+                <h1>Student Management</h1>
+                <p>View and manage all registered students in the system</p>
+            </div>
+            <button id="addStudentBtn" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Student
+            </button>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="table-container">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-department">Department:</label>
+                    <select id="filter-department" class="form-control">
+               
+                    </select>
+                </div>
+                <div class="search-box">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search students...">
+                </div>
+            </div>
+            <table id="studentsTable">
+                <thead>
+                    <tr>
+                        <th>Student Number</th>
+                        <th>Full Name</th>
+                        <th>Department</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="studentsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add/Edit Student PopUp -->
+    <div id="studentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add New Student</h2>
+                <span class="close-btn">&times;</span>
+            </div>
+            <form id="studentForm">
+                <input type="hidden" id="updateMode" value="false">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="student-id">Student Number</label>
+                        <input type="text" id="student-id" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="student-name">Full Name</label>
+                        <input type="text" id="student-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="student-department">Department</label>
+                        <select id="student-department" class="form-control" required>
+                            <option value="">Select Department</option>
+                            <option value="CITE">CITE</option>
+                            <option value="CAHS">CAHS</option>
+                            <option value="CAS">CAS</option>
+                            <option value="CEA">CEA</option>
+                            <option value="CELA">CELA</option>
+                            <option value="CCJE">CCJE</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="student-password">Password</label>
+                        <input type="password" id="student-password" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Add Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script  src="script.js">
+
+    </script>
+</body>
+</html>

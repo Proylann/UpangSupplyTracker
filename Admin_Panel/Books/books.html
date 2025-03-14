@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Reservation System - Admin Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="/Images/logo.png" alt="Dashboard Logo" class="logo-img">
+            Admin Dashboard
+        </div>
+        <nav>
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                Dashboard
+            </a>
+            <a href="books.html" class="nav-item active" id="books-nav">
+                <i class="fas fa-book"></i>
+                Books
+            </a>
+            <a href="uniforms.html" class="nav-item" id="uniforms-nav">
+                <i class="fas fa-tshirt"></i>
+                Uniforms
+            </a>
+            <a href="modules.html" class="nav-item" id="modules-nav">
+                <i class="fas fa-file-alt"></i>
+                Modules
+            </a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Books Management</h1>
+            <p>View and manage all books in the system</p>
+            <button id="addBook" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Book
+            </button>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Preview</th>
+                        <th>Book Title</th>
+                        <th>Department</th>
+                        <th>Course</th>
+                        <th>Quantity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="booksTableBody">
+                    <!-- Data will be populated from the database -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Book Modal -->
+    <div id="booksModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add / Edit Book</h2>
+                <span class="close-btn" id="closeBookModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="bookForm">
+                    <div class="form-group">
+                        <label for="bookName">Book Name</label>
+                        <input type="text" id="bookName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="department">Department</label>
+                        <select id="department" class="form-control" required>
+                            <option value="">Select Department</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="course">Course</label>
+                        <select id="course" class="form-control" required>
+                            <option value="">Select Course</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookImage">Book Image</label>
+                        <input type="file" id="bookImage" class="form-control" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">Quantity</label>
+                        <input type="number" id="quantity" class="form-control" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancelBookBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveBookBtn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
