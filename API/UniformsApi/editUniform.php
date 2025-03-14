@@ -8,61 +8,54 @@ header("Content-Type: application/json");
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once "../config/database.php";
+require "../../dbcon.php";
 
 // Ensure request is POST
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    echo json_encode(["success" => false, "message" => "Invalid request"]);
+    echo json_encode(["success" => false, "message" => "Invalid request method"]);
     exit;
 }
 
 // Validate required fields
-if (!isset($_POST["uniform_id"], $_POST["uniformName"], $_POST["department"], $_POST["quantity"])) {
+if (!isset($_POST["uniform_id"], $_POST["quantity"])) {
     echo json_encode(["success" => false, "message" => "Missing required fields"]);
     exit;
 }
 
 $uniform_id = $_POST["uniform_id"];
-$name = $_POST["uniformName"];
-$department = $_POST["department"];
-$course = $_POST["course"] ?? null;
 $stock = $_POST["quantity"];
-$imagePath = null;
 
-// Check if a file was uploaded
-if (isset($_FILES["uniformImage"]) && $_FILES["uniformImage"]["error"] === UPLOAD_ERR_OK) {
-    $uploadDir = "../uploads/";
-    $fileName = basename($_FILES["uniformImage"]["name"]);
-    $targetFilePath = $uploadDir . time() . "_" . $fileName; // Prevent duplicate names
-    $fileType = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
+// Check if image was uploaded
+$image_updated = false;
+$image_data = null;
 
-    // Validate file type (only allow images)
-    $allowedTypes = ["jpg", "jpeg", "png", "gif"];
-    if (!in_array($fileType, $allowedTypes)) {
-        echo json_encode(["success" => false, "message" => "Invalid file type"]);
-        exit;
-    }
-
-    // Move uploaded file
-    if (move_uploaded_file($_FILES["uniformImage"]["tmp_name"], $targetFilePath)) {
-        $imagePath = $targetFilePath;
+if (isset($_FILES["uniformImage"]) && $_FILES["uniformImage"]["error"] == 0) {
+    $image_file = $_FILES["uniformImage"];
+    
+    // Check if file is an image
+    $allowed_types = ["image/jpeg", "image/png", "image/gif"];
+    if (in_array($image_file["type"], $allowed_types)) {
+        // Read the image file
+        $image_data = file_get_contents($image_file["tmp_name"]);
+        $image_updated = true;
     } else {
-        echo json_encode(["success" => false, "message" => "Failed to upload image"]);
+        echo json_encode(["success" => false, "message" => "Invalid image format"]);
         exit;
     }
 }
 
-// Update database
-if ($imagePath) {
-    $sql = "UPDATE uniforms SET Name=?, DepartmentID=?, CourseID=?, Stock=?, Image=? WHERE ID=?";
+// Prepare the SQL statement based on whether an image was uploaded
+if ($image_updated) {
+    $sql = "UPDATE uniforms SET img=?, Quantity=? WHERE UniformID=?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssssi", $name, $department, $course, $stock, $imagePath, $uniform_id);
+    $stmt->bind_param("sii", $image_data, $stock, $uniform_id);
 } else {
-    $sql = "UPDATE uniforms SET Name=?, DepartmentID=?, CourseID=?, Stock=? WHERE ID=?";
+    $sql = "UPDATE uniforms SET Stock=? WHERE UniformID=?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssi", $name, $department, $course, $stock, $uniform_id);
+    $stmt->bind_param("ii", $stock, $uniform_id);
 }
 
+// Execute the query and check for success
 if ($stmt->execute()) {
     echo json_encode(["success" => true, "message" => "Uniform updated successfully"]);
 } else {

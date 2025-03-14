@@ -6,41 +6,32 @@ header("Content-Type: application/json");
 
 require "../../dbcon.php";
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    error_log("Database connection failed: " . $conn->connect_error);
-    echo json_encode(["success" => false, "message" => "Database connection failed"]);
-    exit;
-}
-
-// Handle preflight requests
+// Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-// Only allow POST requests
+// Ensure only POST requests are allowed
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    error_log("Invalid request method used: " . $_SERVER['REQUEST_METHOD']);
-    echo json_encode(["success" => false, "message" => "Invalid request method"]);
+    http_response_code(405);
+    echo json_encode(["success" => false, "message" => "Only POST method is allowed"]);
     exit;
 }
 
-// Debug: Log the received data
-error_log("POST data: " . json_encode($_POST));
+// Get the input data
+$input = json_decode(file_get_contents("php://input"), true);
 
-// Check if the ID is provided
-if (empty($_POST['id'])) {
-    error_log("Uniform ID missing for delete operation.");
-    echo json_encode(["success" => false, "message" => "Uniform ID is required for deletion"]);
+// Validate input
+if (!isset($input['id'])) {
+    http_response_code(400);
+    echo json_encode(["success" => false, "message" => "Uniform ID is required"]);
     exit;
 }
 
-$uniformId = intval($_POST['id']);
+$uniformId = intval($input['id']);
 
-// Check if the uniform exists in the database
+// Check if the uniform exists
 $checkSql = "SELECT UniformID FROM uniforms WHERE UniformID = ?";
 $checkStmt = $conn->prepare($checkSql);
 $checkStmt->bind_param("i", $uniformId);
@@ -48,7 +39,7 @@ $checkStmt->execute();
 $checkResult = $checkStmt->get_result();
 
 if ($checkResult->num_rows === 0) {
-    error_log("Uniform with ID $uniformId not found.");
+    http_response_code(404);
     echo json_encode(["success" => false, "message" => "Uniform not found"]);
     $checkStmt->close();
     $conn->close();
@@ -60,25 +51,12 @@ $checkStmt->close();
 $conn->begin_transaction();
 
 try {
-    // Check if the Uniform is Currently being used in reserveation
-    // $usageSql = "SELECT COUNT(*) as count FROM reservations WHERE UniformID = ? AND Status = 'active'";
-    // $usageStmt = $conn->prepare($usageSql);
-    // $usageStmt->bind_param("i", $uniformId);
-    // $usageStmt->execute();
-    // $usageResult = $usageStmt->get_result()->fetch_assoc();
-    // 
-    // if ($usageResult['count'] > 0) {
-    //     throw new Exception("Cannot delete uniform as it is currently in use");
-    // }
-    // $usageStmt->close();
-
     // Delete the uniform
     $deleteSql = "DELETE FROM uniforms WHERE UniformID = ?";
     $deleteStmt = $conn->prepare($deleteSql);
     $deleteStmt->bind_param("i", $uniformId);
-    
+
     if (!$deleteStmt->execute()) {
-        error_log("Database error: " . $deleteStmt->error);
         throw new Exception("Database error: " . $deleteStmt->error);
     }
 
@@ -88,17 +66,14 @@ try {
     }
 
     $deleteStmt->close();
-    
     $conn->commit();
-    
-    echo json_encode([
-        "success" => true, 
-        "message" => "Uniform deleted successfully"
-    ]);
+
+    http_response_code(200);
+    echo json_encode(["success" => true, "message" => "Uniform deleted successfully"]);
 
 } catch (Exception $e) {
     $conn->rollback();
-    error_log("Transaction failed: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode(["success" => false, "message" => $e->getMessage()]);
 }
 

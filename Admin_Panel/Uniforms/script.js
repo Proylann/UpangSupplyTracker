@@ -9,6 +9,8 @@ const departmentSelect = document.getElementById("department");
 const courseSelect = document.getElementById("course");
 const uniformImageInput = document.getElementById("uniformImage");
 const quantityInput = document.getElementById("quantity");
+const uniformNameInput = document.getElementById("uniformName");
+const uniformDescriptionInput = document.getElementById("uniformDescription");
 
 // Base URL for API endpoints
 const API_BASE_URL = "http://localhost/Backend/API/UniformsApi";
@@ -149,6 +151,13 @@ function openAddModal() {
     modalTitle.textContent = "Add New Uniform";
     isEditMode = false;
     currentUniformId = null;
+    
+    // Enable all fields for adding a new uniform
+    uniformNameInput.disabled = false;
+    departmentSelect.disabled = false;
+    courseSelect.disabled = false;
+    uniformDescriptionInput.disabled = false;
+    
     uniformModal.style.display = "block";
 }
 
@@ -160,16 +169,28 @@ function openEditModal(uniformId) {
         return;
     }
 
-    document.getElementById("uniformName").value = uniform.Name || "";
+    // Set all fields but make non-editable ones disabled
+    uniformNameInput.value = uniform.Name || "";
+    uniformNameInput.disabled = true;
+    
     departmentSelect.value = uniform.DepartmentID || "";
+    departmentSelect.disabled = true;
 
     // Load courses dynamically before setting course value
     loadCourses(uniform.DepartmentID).then(() => {
         courseSelect.value = uniform.CourseID || "";
+        courseSelect.disabled = true;
     });
 
-    document.getElementById("uniformDescription").value = uniform.Description || "";
+    uniformDescriptionInput.value = uniform.Description || "";
+    uniformDescriptionInput.disabled = true;
+    
+    // Only enable stock quantity for editing
     quantityInput.value = uniform.Stock || 0;
+    quantityInput.disabled = false;
+    
+    // Image is always editable
+    uniformImageInput.disabled = false;
 
     modalTitle.textContent = "Edit Uniform";
     isEditMode = true;
@@ -189,13 +210,32 @@ uniformForm.addEventListener("submit", function (event) {
     const formData = new FormData(this);
 
     if (isEditMode && currentUniformId) {
-        formData.append("uniform_id", currentUniformId); // Ensure the correct ID is passed
+        // For edit mode, create a new FormData with only the allowed fields
+        const editFormData = new FormData();
+        
+        // Add only the ID, image, and quantity to the form data
+        editFormData.append("uniform_id", currentUniformId);
+        
+        // Add image if provided
+        if (uniformImageInput.files[0]) {
+            editFormData.append("uniformImage", uniformImageInput.files[0]);
+        }
+        
+        // Add quantity
+        editFormData.append("quantity", quantityInput.value);
+        
+        // Add the original values for other fields that shouldn't be changed
+        const uniform = allUniforms.find((u) => u.ID == currentUniformId);
+        editFormData.append("uniformName", uniform.Name);
+        editFormData.append("department", uniform.DepartmentID);
+        editFormData.append("course", uniform.CourseID || "");
+        editFormData.append("uniformDescription", uniform.Description || "");
 
         fetch(`${API_BASE_URL}/editUniform.php`, {
-            method: "POST", // Change to PUT if backend supports it
-            body: formData,
+            method: "POST",
+            body: editFormData,
         })
-        .then(response  => response.json())
+        .then(response => response.json())
         .then((data) => {
             if (data.success) {
                 alert("Uniform updated successfully!");
@@ -208,7 +248,7 @@ uniformForm.addEventListener("submit", function (event) {
         .catch((error) => console.error("Error updating uniform:", error));
 
     } else {
-        // Adding a new uniform
+        // Adding a new uniform - use all form data
         fetch(`${API_BASE_URL}/addUniform.php`, {
             method: "POST",
             body: formData,
@@ -229,6 +269,8 @@ uniformForm.addEventListener("submit", function (event) {
 
 // Function to delete a uniform
 function deleteUniform(uniformId) {
+    console.log("Deleting uniform ID:", uniformId); // Debugging line
+
     fetch(`${API_BASE_URL}/deleteUniform.php`, {
         method: "POST",
         body: JSON.stringify({ id: uniformId }),
@@ -236,6 +278,7 @@ function deleteUniform(uniformId) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log("Delete response:", data); // Debugging response
         if (data.success) {
             alert("Uniform deleted successfully");
             loadUniforms();
