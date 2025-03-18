@@ -1,1 +1,1 @@
-{"DepartmentID":"","FullName":"","Password":"4321","StudentNumber":"4321"}
+{"CourseID":"","DepartmentID":"","FullName":"","Password":"paswird","StudentNumber":"03-2324-031246"}

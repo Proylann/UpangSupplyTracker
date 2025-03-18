@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $inputData = json_decode(file_get_contents("php://input"), true);
     
     if (!isset($inputData['FullName']) || !isset($inputData['StudentNumber']) || 
-        !isset($inputData['Password']) || !isset($inputData['DepartmentID'])) {
+        !isset($inputData['Password']) || !isset($inputData['DepartmentID']) || !isset($inputData['CourseID'])) {
         error422('Missing required fields');
     }
 
@@ -27,11 +27,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $studentNumber = mysqli_real_escape_string($conn, trim($inputData['StudentNumber']));
     $password = password_hash(trim($inputData['Password']), PASSWORD_DEFAULT); // Hash password
     $departmentID = mysqli_real_escape_string($conn, trim($inputData['DepartmentID']));
+    $courseID = mysqli_real_escape_string($conn, trim($inputData['CourseID']));
 
     if(empty($fullname)) error422('Enter your full name');
     if(empty($studentNumber)) error422('Enter Student Number');
     if(empty($inputData['Password'])) error422('Enter your password'); // Check before hashing
     if(empty($departmentID)) error422('Enter your department');
+    if(empty($courseID)) error422('Enter your course');
+
+    // Check if CourseID exists
+    $checkCourseQuery = "SELECT CourseID FROM course WHERE CourseID = ?";
+    $checkCourseStmt = $conn->prepare($checkCourseQuery);
+    $checkCourseStmt->bind_param("s", $courseID);
+    $checkCourseStmt->execute();
+    $courseResult = $checkCourseStmt->get_result();
+    
+    if ($courseResult->num_rows == 0) {
+        error422('Invalid Course ID. Please select an existing course.');
+    }
+    $checkCourseStmt->close();
 
     // Check if StudentNumber already exists
     $checkQuery = "SELECT * FROM students WHERE StudentNumber = ?";
@@ -46,9 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $checkStmt->close();
 
     // Insert Data
-    $query = "INSERT INTO students (FullName, StudentNumber, Password, DepartmentID) VALUES (?, ?, ?, ?)";
+    $query = "INSERT INTO students (FullName, StudentNumber, Password, DepartmentID, CourseID) VALUES (?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ssss", $fullname, $studentNumber, $password, $departmentID);
+    $stmt->bind_param("sssss", $fullname, $studentNumber, $password, $departmentID, $courseID);
 
     if ($stmt->execute()) {
         $data = ['status' => 201, 'message' => 'Student registered successfully'];

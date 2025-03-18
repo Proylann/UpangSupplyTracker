@@ -1,43 +1,30 @@
 <?php
 // Database connection
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Content-Type: application/json; charset=UTF-8");
 
 require "../../dbcon.php";
+$conn = mysqli_connect($servername, $username, $password, $dbname);
 
- $conn = mysqli_connect($servername, $username, $password, $dbname);
-    
+// Get category filter from request
+$categoryFilter = isset($_GET['category']) ? $_GET['category'] : 'all';
 
-// First, let's check the actual column name in your courses table
-$check_columns_query = "SHOW COLUMNS FROM course";
-$columns_result = $conn->query($check_columns_query);
-
-$course_column_name = "Course"; // Default assumption
-if ($columns_result) {
-    while ($column = $columns_result->fetch_assoc()) {
-        // Look for the column that might contain course name (Course, Name, Title, etc.)
-        if (in_array(strtolower($column['Field']), ['course', 'name', 'title', 'coursename'])) {
-            $course_column_name = $column['Field'];
-            break;
-        }
-    }
-}
-
-// Now use the correct column name in our main query, including Preview blob columns
+// Base query joining the category table
 $sql = "
     SELECT 
         'module' AS type,
         m.ModuleID AS id, 
         m.Title AS name, 
         d.Name AS department, 
-        c.{$course_column_name} AS Course, 
+        c.CourseID AS Course, 
         m.Quantity,
         m.Preview AS preview
     FROM modules m
     LEFT JOIN department d ON m.DepartmentID = d.DepartmentID
     LEFT JOIN course c ON m.CourseID = c.CourseID
+    LEFT JOIN category cat ON cat.module_id = m.ModuleID
     
     UNION ALL
     
@@ -46,12 +33,13 @@ $sql = "
         u.UniformID AS id, 
         u.Name AS name, 
         d.Name AS department, 
-        c.{$course_column_name} AS Course, 
+        c.CourseID AS Course, 
         u.Quantity,
         u.img AS preview
     FROM uniforms u
     LEFT JOIN department d ON u.DepartmentID = d.DepartmentID
     LEFT JOIN course c ON u.CourseID = c.CourseID
+    LEFT JOIN category cat ON cat.uniform_id = u.UniformID
     
     UNION ALL
     
@@ -60,63 +48,54 @@ $sql = "
         b.ID AS id, 
         b.BookTitle AS name, 
         d.Name AS department, 
-        c.{$course_column_name} AS Course, 
+        c.CourseID AS Course, 
         b.Quantity,
         b.Preview AS preview
     FROM books b
     LEFT JOIN department d ON b.DepartmentID = d.DepartmentID
     LEFT JOIN course c ON b.CourseID = c.CourseID
+    LEFT JOIN category cat ON cat.book_id = b.ID
 ";
 
-$result = $conn->query($sql);
+// Apply category filter
+if ($categoryFilter !== 'all') {
+    $sql .= " WHERE cat.category_name = ?";
+}
 
-// Count totals and low stock items
+$stmt = $conn->prepare($sql);
+if ($categoryFilter !== 'all') {
+    $stmt->bind_param("s", $categoryFilter);
+}
+$stmt->execute();
+$result = $stmt->get_result();
+
+// Prepare response
+$items = [];
 $totalItems = 0;
 $lowStockItems = 0;
 
-$items = [];
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $totalItems++;
-        if ($row['Quantity'] < 100) {
-            $lowStockItems++;
-        }
-        
-        // Convert the blob data to base64 for display in HTML
-        if (isset($row['preview']) && $row['preview'] !== null) {
-            $row['preview'] = base64_encode($row['preview']);
-        } else {
-            $row['preview'] = null;
-        }
-        
-        $items[] = $row;
+while ($row = $result->fetch_assoc()) {
+    $totalItems++;
+    if ($row['Quantity'] < 100) {
+        $lowStockItems++;
     }
-} else {
-    // Log the error if the query fails
-    $response = [
-        "error" => "Query failed: " . $conn->error,
-        "query" => $sql,
-        "items" => [],
-        "stats" => [
-            "totalItems" => 0,
-            "lowStockItems" => 0
-        ]
-    ];
-    echo json_encode($response);
-    $conn->close();
-    exit;
+
+    // Convert preview BLOB to base64 if available
+    if (isset($row['preview']) && $row['preview'] !== null) {
+        $row['preview'] = base64_encode($row['preview']);
+    }
+
+    $items[] = $row;
 }
 
-$conn->close();
-
-// Return data including stats
-$response = [
+echo json_encode([
     "items" => $items,
     "stats" => [
         "totalItems" => $totalItems,
         "lowStockItems" => $lowStockItems
     ]
-];
+]);
 
-echo json_encode($response);
+$stmt->close();
+$conn->close();
 ?>

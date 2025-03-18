@@ -32,6 +32,8 @@ document.getElementById("cancelUniformBtn").addEventListener("click", function (
     closeModal();
 });
 
+
+
 // Close modal when clicking outside
 window.onclick = function (event) {
     if (event.target === uniformModal) {
